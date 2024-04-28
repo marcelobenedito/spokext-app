@@ -1,6 +1,5 @@
-package com.github.marcelobenedito.spokext.ui
+package com.github.marcelobenedito.spokext.ui.screen
 
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -19,24 +18,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.github.marcelobenedito.spokext.data.VoiceToTextListener
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.marcelobenedito.spokext.data.VoiceToTextListenerState
 import com.github.marcelobenedito.spokext.ui.theme.Black
+import com.github.marcelobenedito.spokext.ui.viewmodel.NoteEditorViewModel
 
 @Composable
 fun NoteEditorScreen(
-    state: VoiceToTextListenerState,
-    recordListener: VoiceToTextListener,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: NoteEditorViewModel = viewModel(factory = NoteEditorViewModel.Factory)
 ) {
+    val state: VoiceToTextListenerState by viewModel.state.collectAsState()
     val focusRequester = FocusRequester()
     SideEffect {
         focusRequester.requestFocus()
@@ -47,7 +47,7 @@ fun NoteEditorScreen(
     ) {
         BasicTextField(
             value = state.spokenText,
-            onValueChange = { recordListener.onTextChange(it) },
+            onValueChange = viewModel::onTextChange,
 
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = Black),
             decorationBox = { innerTextField ->
@@ -75,11 +75,7 @@ fun NoteEditorScreen(
                 )
             }
             IconButton(onClick = {
-                if (state.isSpeaking) {
-                    recordListener.stopListening()
-                } else {
-                    recordListener.startListening()
-                }
+                if (state.isSpeaking) viewModel.stopListening() else viewModel.startListening()
             }) {
                 Icon(
                     imageVector = if (state.isSpeaking) Icons.Rounded.Stop else Icons.Rounded.Mic,
