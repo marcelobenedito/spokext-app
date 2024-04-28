@@ -1,5 +1,6 @@
 package com.github.marcelobenedito.spokext.ui
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -13,12 +14,18 @@ import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusTarget
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.github.marcelobenedito.spokext.data.VoiceToTextListener
 import com.github.marcelobenedito.spokext.data.VoiceToTextListenerState
@@ -30,12 +37,18 @@ fun NoteEditorScreen(
     recordListener: VoiceToTextListener,
     modifier: Modifier = Modifier
 ) {
+    val focusRequester = FocusRequester()
+    SideEffect {
+        focusRequester.requestFocus()
+    }
+
     Box(
         modifier = modifier.padding(16.dp)
     ) {
         BasicTextField(
             value = state.spokenText,
             onValueChange = { recordListener.onTextChange(it) },
+
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = Black),
             decorationBox = { innerTextField ->
                 if (state.spokenText.isBlank()) {
@@ -46,7 +59,9 @@ fun NoteEditorScreen(
                 }
                 innerTextField()
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(focusRequester)
         )
         Row(
             verticalAlignment = Alignment.Bottom,
@@ -56,8 +71,7 @@ fun NoteEditorScreen(
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
                     imageVector = Icons.Rounded.Delete,
-                    contentDescription = null,
-                    tint = Black
+                    contentDescription = null
                 )
             }
             IconButton(onClick = {
@@ -70,14 +84,13 @@ fun NoteEditorScreen(
                 Icon(
                     imageVector = if (state.isSpeaking) Icons.Rounded.Stop else Icons.Rounded.Mic,
                     contentDescription = null,
-                    tint = if (state.isSpeaking) Color.Red else Black
+                    tint = if (state.isSpeaking) Color.Red else LocalContentColor.current
                 )
             }
             IconButton(onClick = { /*TODO*/ }) {
                 Icon(
                     imageVector = Icons.Rounded.Save,
-                    contentDescription = null,
-                    tint = Black
+                    contentDescription = null
                 )
             }
         }

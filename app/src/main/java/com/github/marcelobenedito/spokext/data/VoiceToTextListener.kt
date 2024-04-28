@@ -12,15 +12,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 
-class VoiceToTextListener(
-    private val app: Application
-) : RecognitionListener {
+class VoiceToTextListener(private val app: Application) : RecognitionListener {
 
     private val _state = MutableStateFlow(VoiceToTextListenerState())
     val state = _state.asStateFlow()
 
     private val recognizer: SpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(app)
     private var isStopped: Boolean = false
+    private val partialResultBuilder = StringBuilder()
 
     fun startListening(languageCode: String = "en") {
         Log.d(TAG, "startListening")
@@ -72,12 +71,6 @@ class VoiceToTextListener(
         }
     }
 
-    override fun onBeginningOfSpeech() = Unit
-
-    override fun onRmsChanged(p0: Float) = Unit
-
-    override fun onBufferReceived(p0: ByteArray?) = Unit
-
     override fun onEndOfSpeech() {
         Log.d(TAG, "onEndOfSpeech")
     }
@@ -95,14 +88,11 @@ class VoiceToTextListener(
      */
     override fun onError(error: Int) {
         Log.e(TAG, "Error: $error")
-        if (error == SpeechRecognizer.ERROR_NO_MATCH) {
-            if (!isStopped) {
-                recognizer.cancel()
-                startListening()
-            }
-        }
-        if (error == SpeechRecognizer.ERROR_CLIENT) {
-            return
+        // if some issue has happened during speech recognize, then try to cancel and start
+        // listening to speech again
+        if (error == SpeechRecognizer.ERROR_NO_MATCH && !isStopped) {
+            recognizer.cancel()
+            startListening()
         }
 
         _state.update {
@@ -111,14 +101,13 @@ class VoiceToTextListener(
     }
 
     override fun onResults(results: Bundle?) {
-        results
-            ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-            ?.getOrNull(0)
-            ?.let { result ->
-                _state.update {
-                    it.copy(spokenText = result)
-                }
-            }
+        // Every time it's received a result then it means the sentence was recognized.
+        // So, partial results does not need lastSpokenText value anymore and it can be cleared to
+        // receive the next partial results.
+        _state.update {
+            it.copy(lastSpokenText = "")
+        }
+        // If user does not stopped voice recognizer, then keep listening to the voice.
         if (!isStopped) {
             recognizer.cancel()
             startListening()
@@ -126,19 +115,44 @@ class VoiceToTextListener(
     }
 
     override fun onPartialResults(partialResults: Bundle?) {
-        val partialMatches =
-            partialResults!!.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-        if (partialMatches != null && partialMatches.size > 0) {
-            // Display the partial recognition result
-            val partialResult = partialMatches[0]
-            // TODO: need to get a way to keep old result
-            _state.update {
-                it.copy(spokenText = partialResult)
-            }
+        val partialMatches = partialResults!!.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+        // Avoid null or empty results
+        if (partialMatches.isNullOrEmpty()) return
+        // Values is always at the first position
+        val partialResult = partialMatches[0]
+        Log.d(TAG, "partialResult: $partialResult")
+        // Avoid same results as previous
+        if (_state.value.lastSpokenText == partialResult) return
+        // Display the partial recognition result and store the last partial result
+        _state.update {
+            it.copy(
+                spokenText = getFinalResult(newContent = extractNewContentFromPartialResult(partialResult)),
+                lastSpokenText = partialResult
+            )
         }
     }
 
+    override fun onBeginningOfSpeech() = Unit
+
+    override fun onRmsChanged(p0: Float) = Unit
+
+    override fun onBufferReceived(p0: ByteArray?) = Unit
+
     override fun onEvent(p0: Int, p1: Bundle?) = Unit
+
+    private fun extractNewContentFromPartialResult(partialResult: String): String {
+        val lastSpokenText = _state.value.lastSpokenText
+        if (partialResult.startsWith(lastSpokenText)) {
+            return partialResult.replace(lastSpokenText, "").trim()
+        }
+
+        return partialResult
+    }
+
+    private fun getFinalResult(newContent: String): String {
+        partialResultBuilder.append(" ").append(newContent);
+        return partialResultBuilder.toString().trim()
+    }
 
     companion object {
         private const val TAG: String = "VoiceToTextListener"
@@ -147,6 +161,7 @@ class VoiceToTextListener(
 
 data class VoiceToTextListenerState(
     val spokenText: String = "",
+    val lastSpokenText: String = "",
     val isSpeaking: Boolean = false,
     val error: String? = null
 )
