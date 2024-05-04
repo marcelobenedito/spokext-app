@@ -10,9 +10,12 @@ import com.github.marcelobenedito.spokext.SpokextApplication
 import com.github.marcelobenedito.spokext.data.SpokextRepository
 import com.github.marcelobenedito.spokext.data.VoiceToTextListener
 import com.github.marcelobenedito.spokext.data.VoiceToTextListenerState
+import com.github.marcelobenedito.spokext.mapper.toEntity
+import com.github.marcelobenedito.spokext.ui.Note
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel() {
     // Speaking and real time recognized speech state
@@ -29,7 +32,9 @@ class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel
      * [text] is the new value to be added.
      */
     fun onTextChange(text: String) {
-        repository.onTextChange(text)
+        viewModelScope.launch {
+            repository.onTextChange(text)
+        }
     }
 
     /**
@@ -37,7 +42,9 @@ class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel
      * The isSpeaking state are changed to true.
      */
     fun startListening() {
-        repository.startListening()
+        viewModelScope.launch {
+            repository.startListening()
+        }
     }
 
     /**
@@ -45,7 +52,47 @@ class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel
      * The isSpeaking state are changed to false.
      */
     fun stopListening() {
-        repository.stopListening()
+        viewModelScope.launch {
+            repository.stopListening()
+        }
+    }
+
+    /**
+     * Save a new note to the database with the provided title and text.
+     * [noteTitle] title that will be used to identify the note.
+     */
+    fun saveNote(noteTitle: String) {
+        viewModelScope.launch {
+            val newNote = Note(title = noteTitle, description = state.value.spokenText)
+            repository.insert(newNote.toEntity())
+        }
+    }
+
+    /**
+     * Discard the current note in the editor. It notifies success or error to the user and back to
+     * the home screen.
+     */
+    fun discardNote() {
+        viewModelScope.launch {
+            repository.discardNote()
+            // TODO: Send success/error notification event to the UI
+        }
+        // TODO: Go back to home screen. add navigation here
+    }
+
+    /**
+     * Opens the title input dialog to the user provide a note title.
+     */
+    fun openTitleInputDialog() {
+        // TODO: Open dialog
+        // TODO: Update isTitleInputDialogOpened to true
+    }
+
+    /**
+     * Add the provided [title] to the noteTitle state.
+     */
+    fun setNoteTitle(title: String) {
+        // TODO: Update note title state
     }
 
     companion object {

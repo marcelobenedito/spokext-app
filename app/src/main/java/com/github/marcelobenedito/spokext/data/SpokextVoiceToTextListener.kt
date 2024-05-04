@@ -18,6 +18,10 @@ class SpokextVoiceToTextListener(private val context: Context) : VoiceToTextList
     private val recognizer: SpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
     private val partialResultBuilder = StringBuilder()
 
+    override fun cleanState() {
+        _state.update { VoiceToTextListenerState() }
+    }
+
     override fun startListening(languageCode: String) {
         Log.d(TAG, "startListening")
         // initialize recognition if available

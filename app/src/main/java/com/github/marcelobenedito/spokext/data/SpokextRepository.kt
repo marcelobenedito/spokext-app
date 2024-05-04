@@ -8,7 +8,6 @@ class SpokextRepository(
     private val database: SpokextDao,
     private val listener: VoiceToTextListener
 ) {
-
     fun getAll(): List<NoteEntity> = database.getAll()
 
     fun getNoteById(id: Int): NoteEntity? = database.getNoteById(id)
@@ -24,4 +23,6 @@ class SpokextRepository(
     fun onTextChange(value: String) = listener.onTextChange(value)
 
     fun getListeningState(): Flow<VoiceToTextListenerState> = listener.getListeningState()
+
+    fun discardNote() = listener.cleanState()
 }

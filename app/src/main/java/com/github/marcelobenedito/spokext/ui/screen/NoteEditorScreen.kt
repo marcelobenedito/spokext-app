@@ -25,8 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.marcelobenedito.spokext.R
 import com.github.marcelobenedito.spokext.data.VoiceToTextListenerState
 import com.github.marcelobenedito.spokext.ui.theme.Black
 import com.github.marcelobenedito.spokext.ui.viewmodel.NoteEditorViewModel
@@ -48,12 +50,11 @@ fun NoteEditorScreen(
         BasicTextField(
             value = state.spokenText,
             onValueChange = viewModel::onTextChange,
-
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = Black),
             decorationBox = { innerTextField ->
                 if (state.spokenText.isBlank()) {
                     Text(
-                        text = "Type your notes here...",
+                        text = stringResource(R.string.type_notes_placeholder),
                         style = MaterialTheme.typography.bodyLarge.copy(color = Color.Gray)
                     )
                 }
@@ -68,7 +69,7 @@ fun NoteEditorScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxSize()
         ) {
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = viewModel::discardNote) {
                 Icon(
                     imageVector = Icons.Rounded.Delete,
                     contentDescription = null
@@ -83,7 +84,7 @@ fun NoteEditorScreen(
                     tint = if (state.isSpeaking) Color.Red else LocalContentColor.current
                 )
             }
-            IconButton(onClick = { /*TODO*/ }) {
+            IconButton(onClick = viewModel::openTitleInputDialog) {
                 Icon(
                     imageVector = Icons.Rounded.Save,
                     contentDescription = null

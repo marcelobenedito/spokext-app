@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Spokext</string>
+    <string name="app_name" translatable="false">Spokext</string>
+    <string name="type_notes_placeholder">Type your notes here…</string>
 </resources>
