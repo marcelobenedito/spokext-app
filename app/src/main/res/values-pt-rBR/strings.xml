@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="type_notes_placeholder">Adicione suas anotações aqui…</string>
+    <string name="notes">Anotações</string>
+    <string name="note_editor">Editor de Anotações</string>
 </resources>

@@ -8,16 +8,21 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.github.marcelobenedito.spokext.SpokextApplication
 import com.github.marcelobenedito.spokext.data.SpokextRepository
-import com.github.marcelobenedito.spokext.data.VoiceToTextListener
 import com.github.marcelobenedito.spokext.data.VoiceToTextListenerState
 import com.github.marcelobenedito.spokext.mapper.toEntity
+import com.github.marcelobenedito.spokext.mapper.toNote
 import com.github.marcelobenedito.spokext.ui.Note
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel() {
+class SpokextViewModel(private val repository: SpokextRepository) : ViewModel() {
     // Speaking and real time recognized speech state
     val state: StateFlow<VoiceToTextListenerState> = repository
         .getListeningState()
@@ -26,6 +31,17 @@ class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel
             started = SharingStarted.WhileSubscribed(5000L),
             initialValue = VoiceToTextListenerState()
         )
+
+    // All stored notes list
+    private val _noteList = MutableStateFlow(emptyList<Note>())
+    val noteList: StateFlow<List<Note>> = _noteList.asStateFlow()
+
+    // Indicates if is loading notes
+    private val _isLoadingNotes = MutableStateFlow(false)
+    val isLoadingNotes: StateFlow<Boolean> = _isLoadingNotes.asStateFlow()
+
+    private val _isDisplayingTitleDialog = MutableStateFlow(false)
+    val isDisplayingTitleDialog: StateFlow<Boolean> = _isDisplayingTitleDialog.asStateFlow()
 
     /**
      * Change the current notes by typing through keyboard instead on the mic.
@@ -64,7 +80,10 @@ class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel
     fun saveNote(noteTitle: String) {
         viewModelScope.launch {
             val newNote = Note(title = noteTitle, description = state.value.spokenText)
-            repository.insert(newNote.toEntity())
+            withContext(Dispatchers.IO) {
+                repository.insert(newNote.toEntity())
+            }
+            closeTitleInputDialog()
         }
     }
 
@@ -84,22 +103,35 @@ class NoteEditorViewModel(private val repository: SpokextRepository) : ViewModel
      * Opens the title input dialog to the user provide a note title.
      */
     fun openTitleInputDialog() {
-        // TODO: Open dialog
-        // TODO: Update isTitleInputDialogOpened to true
+        _isDisplayingTitleDialog.update { true }
     }
 
     /**
-     * Add the provided [title] to the noteTitle state.
+     * Closes the title input dialog to the user provide a note title.
      */
-    fun setNoteTitle(title: String) {
-        // TODO: Update note title state
+    fun closeTitleInputDialog() {
+        discardNote()
+        _isDisplayingTitleDialog.update { false }
+    }
+
+    /**
+     * Get all stored notes.
+     */
+    fun getAllNotes() {
+        viewModelScope.launch {
+            _isLoadingNotes.update { true }
+            withContext(Dispatchers.IO) {
+                _noteList.update { repository.getAll().map { it.toNote() }.toList() }
+            }
+            _isLoadingNotes.update { false }
+        }
     }
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val appContainer = (this[APPLICATION_KEY] as SpokextApplication).appContainer
-                NoteEditorViewModel(repository = appContainer.repository)
+                SpokextViewModel(repository = appContainer.repository)
             }
         }
     }
