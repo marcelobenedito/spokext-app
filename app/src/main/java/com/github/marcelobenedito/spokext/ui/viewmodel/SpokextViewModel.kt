@@ -40,8 +40,17 @@ class SpokextViewModel(private val repository: SpokextRepository) : ViewModel() 
     private val _isLoadingNotes = MutableStateFlow(false)
     val isLoadingNotes: StateFlow<Boolean> = _isLoadingNotes.asStateFlow()
 
+    // Indicates title dialog is displayed
     private val _isDisplayingTitleDialog = MutableStateFlow(false)
     val isDisplayingTitleDialog: StateFlow<Boolean> = _isDisplayingTitleDialog.asStateFlow()
+
+    // Indicates discard dialog is displayed
+    private val _isDisplayingDiscardDialog = MutableStateFlow(false)
+    val isDisplayingDiscardDialog: StateFlow<Boolean> = _isDisplayingDiscardDialog.asStateFlow()
+
+    // Used to edit a selected note
+    private val _editNote = MutableStateFlow<Note?>(null)
+    val editNote: StateFlow<Note?> = _editNote.asStateFlow()
 
     /**
      * Change the current notes by typing through keyboard instead on the mic.
@@ -79,10 +88,15 @@ class SpokextViewModel(private val repository: SpokextRepository) : ViewModel() 
      */
     fun saveNote(noteTitle: String) {
         viewModelScope.launch {
-            val newNote = Note(title = noteTitle, description = state.value.spokenText)
+            val newNote = Note(
+                id = editNote.value?.id ?: 0,
+                title = noteTitle,
+                description = state.value.spokenText
+            )
             withContext(Dispatchers.IO) {
                 repository.insert(newNote.toEntity())
             }
+            discardNote()
             closeTitleInputDialog()
         }
     }
@@ -92,6 +106,8 @@ class SpokextViewModel(private val repository: SpokextRepository) : ViewModel() 
      * the home screen.
      */
     fun discardNote() {
+        _editNote.update { null }
+        _isDisplayingDiscardDialog.update { false }
         viewModelScope.launch {
             repository.discardNote()
             // TODO: Send success/error notification event to the UI
@@ -110,8 +126,21 @@ class SpokextViewModel(private val repository: SpokextRepository) : ViewModel() 
      * Closes the title input dialog to the user provide a note title.
      */
     fun closeTitleInputDialog() {
-        discardNote()
         _isDisplayingTitleDialog.update { false }
+    }
+
+    /**
+     * Opens the discard dialog to the user provide a note title.
+     */
+    fun openDiscardDialog() {
+        _isDisplayingDiscardDialog.update { true }
+    }
+
+    /**
+     * Closes the discard dialog to the user provide a note title.
+     */
+    fun closeDiscardDialog() {
+        _isDisplayingDiscardDialog.update { false }
     }
 
     /**
@@ -125,6 +154,11 @@ class SpokextViewModel(private val repository: SpokextRepository) : ViewModel() 
             }
             _isLoadingNotes.update { false }
         }
+    }
+
+    fun setNote(note: Note) {
+        _editNote.update { note }
+        repository.onTextChange(note.description ?: "")
     }
 
     companion object {

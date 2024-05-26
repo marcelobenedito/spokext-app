@@ -37,6 +37,7 @@ fun NoteListScreen(
     noteList: List<Note>,
     isRefreshing: Boolean,
     refreshNotes: () -> Unit,
+    onSelectNote: (Note) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LaunchedEffect(key1 = true) {
@@ -73,7 +74,7 @@ fun NoteListScreen(
         ) {
             items(noteList) {
                 Card(
-                    onClick = { /*TODO*/ },
+                    onClick = { onSelectNote(it) },
                     modifier = Modifier.padding(vertical = 8.dp)
                 ) {
                     Column(
@@ -84,7 +85,10 @@ fun NoteListScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column {
                                 Row {
-                                    Icon(imageVector = Icons.AutoMirrored.Filled.StickyNote2, contentDescription = null)
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.StickyNote2,
+                                        contentDescription = null
+                                    )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(text = it.title)
                                 }
@@ -114,7 +118,8 @@ fun NoteListScreenPreview() {
             NoteListScreen(
                 noteList = emptyList(),
                 isRefreshing = false,
-                refreshNotes = {}
+                refreshNotes = {},
+                onSelectNote = {}
             )
         }
     }
@@ -136,7 +141,8 @@ fun NoteListScreenNotEmptyPreview() {
             NoteListScreen(
                 noteList = noteList,
                 isRefreshing = false,
-                refreshNotes = {}
+                refreshNotes = {},
+                onSelectNote = {}
             )
         }
     }
@@ -150,7 +156,8 @@ fun NoteListScreenRefreshingPreview() {
             NoteListScreen(
                 noteList = emptyList(),
                 isRefreshing = true,
-                refreshNotes = {}
+                refreshNotes = {},
+                onSelectNote = {}
             )
         }
     }

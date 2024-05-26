@@ -50,6 +50,7 @@ fun NoteEditorScreen(
     spokenText: String,
     isSpeaking: Boolean,
     isDisplayingTitleDialog: Boolean,
+    isDisplayingDiscardDialog: Boolean,
     onTextChange: (String) -> Unit,
     discardNote: () -> Unit,
     startListening: () -> Unit,
@@ -57,7 +58,10 @@ fun NoteEditorScreen(
     openTitleInputDialog: () -> Unit,
     closeTitleInputDialog: () -> Unit,
     saveNote: (String) -> Unit,
+    openDiscardDialog: () -> Unit,
+    closeDiscardDialog: () -> Unit,
     modifier: Modifier = Modifier,
+    noteTitle: String? = null,
 ) {
     val focusRequester = FocusRequester()
     SideEffect {
@@ -69,8 +73,18 @@ fun NoteEditorScreen(
     ) {
         if (isDisplayingTitleDialog)
             TitleDialog(
+                noteTitle = noteTitle,
                 saveNote = saveNote,
                 closeTitleInputDialog = closeTitleInputDialog
+            )
+
+        if (isDisplayingDiscardDialog)
+            DiscardDialog(
+                discardNote = {
+                    stopListening()
+                    discardNote()
+                },
+                closeDialog = closeDiscardDialog
             )
 
         BasicTextField(
@@ -96,10 +110,7 @@ fun NoteEditorScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             IconButton(
-                onClick = {
-                    stopListening()
-                    discardNote()
-                }
+                onClick = openDiscardDialog
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Delete,
@@ -133,11 +144,12 @@ fun NoteEditorScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TitleDialog(
+    noteTitle: String?,
     saveNote: (String) -> Unit,
     closeTitleInputDialog: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var title by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf(noteTitle ?: "") }
 
     Dialog(onDismissRequest = {}) {
         Card(
@@ -175,6 +187,42 @@ fun TitleDialog(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiscardDialog(
+    discardNote: () -> Unit,
+    closeDialog: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Dialog(onDismissRequest = {}) {
+        Card(
+            onClick = {},
+            modifier = modifier
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Would you like to discard your changes?",
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(onClick = closeDialog) {
+                        Text(text = "No")
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Button(onClick = discardNote) {
+                        Text(text = "Yes")
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Preview
 @Composable
 fun NoteEditorScreenPreview() {
@@ -184,13 +232,16 @@ fun NoteEditorScreenPreview() {
                 spokenText = "",
                 isSpeaking = false,
                 isDisplayingTitleDialog = false,
+                isDisplayingDiscardDialog = false,
                 onTextChange = {},
                 discardNote = {},
                 startListening = {},
                 stopListening = {},
                 openTitleInputDialog = {},
                 closeTitleInputDialog = {},
-                saveNote = {}
+                saveNote = {},
+                openDiscardDialog = {},
+                closeDiscardDialog = {}
             )
         }
     }
@@ -205,13 +256,16 @@ fun NoteEditorScreenListeningPreview() {
                 spokenText = "Some text...",
                 isSpeaking = true,
                 isDisplayingTitleDialog = false,
+                isDisplayingDiscardDialog = false,
                 onTextChange = {},
                 discardNote = {},
                 startListening = {},
                 stopListening = {},
                 openTitleInputDialog = {},
                 closeTitleInputDialog = {},
-                saveNote = {}
+                saveNote = {},
+                openDiscardDialog = {},
+                closeDiscardDialog = {}
             )
         }
     }
@@ -219,20 +273,47 @@ fun NoteEditorScreenListeningPreview() {
 
 @Preview
 @Composable
-fun NoteEditorScreenDialogOpenedPreview() {
+fun NoteEditorScreenTitleDialogOpenedPreview() {
     MaterialTheme {
         Surface {
             NoteEditorScreen(
                 spokenText = "Some text...",
                 isSpeaking = false,
                 isDisplayingTitleDialog = true,
+                isDisplayingDiscardDialog = false,
                 onTextChange = {},
                 discardNote = {},
                 startListening = {},
                 stopListening = {},
                 openTitleInputDialog = {},
                 closeTitleInputDialog = {},
-                saveNote = {}
+                saveNote = {},
+                openDiscardDialog = {},
+                closeDiscardDialog = {}
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun NoteEditorScreenDiscardDialogOpenedPreview() {
+    MaterialTheme {
+        Surface {
+            NoteEditorScreen(
+                spokenText = "Some text...",
+                isSpeaking = false,
+                isDisplayingTitleDialog = false,
+                isDisplayingDiscardDialog = true,
+                onTextChange = {},
+                discardNote = {},
+                startListening = {},
+                stopListening = {},
+                openTitleInputDialog = {},
+                closeTitleInputDialog = {},
+                saveNote = {},
+                openDiscardDialog = {},
+                closeDiscardDialog = {}
             )
         }
     }

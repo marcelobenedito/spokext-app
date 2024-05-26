@@ -1,9 +1,15 @@
 package com.github.marcelobenedito.spokext.ui
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicExternalOn
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -15,8 +21,12 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -37,8 +47,10 @@ fun SpokextApp(
 ) {
     val uiState: VoiceToTextListenerState by viewModel.state.collectAsState()
     val noteList: List<Note> by viewModel.noteList.collectAsState()
+    val editNote: Note? by viewModel.editNote.collectAsState()
     val isRefreshingNotes: Boolean by viewModel.isLoadingNotes.collectAsState()
     val isDisplayingTitleDialog: Boolean by viewModel.isDisplayingTitleDialog.collectAsState()
+    val isDisplayingDiscardDialog: Boolean by viewModel.isDisplayingDiscardDialog.collectAsState()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentScreen = SpokextScreen.valueOf(
         backStackEntry?.destination?.route ?: SpokextScreen.NoteList.name
@@ -64,14 +76,20 @@ fun SpokextApp(
                     noteList = noteList,
                     isRefreshing = isRefreshingNotes,
                     refreshNotes = viewModel::getAllNotes,
+                    onSelectNote = {
+                        viewModel.setNote(it)
+                        navController.navigate(SpokextScreen.NoteEditor.name)
+                    },
                     modifier = modifier.padding(padding)
                 )
             }
             composable(route = SpokextScreen.NoteEditor.name) {
                 NoteEditorScreen(
+                    noteTitle = editNote?.title,
                     spokenText = uiState.spokenText,
                     isSpeaking = uiState.isSpeaking,
                     isDisplayingTitleDialog = isDisplayingTitleDialog,
+                    isDisplayingDiscardDialog = isDisplayingDiscardDialog,
                     onTextChange = viewModel::onTextChange,
                     startListening = viewModel::startListening,
                     stopListening = viewModel::stopListening,
@@ -85,6 +103,8 @@ fun SpokextApp(
                         viewModel.saveNote(it)
                         navController.navigateUp()
                     },
+                    openDiscardDialog = viewModel::openDiscardDialog,
+                    closeDiscardDialog = viewModel::closeDiscardDialog,
                     modifier = modifier.padding(padding)
                 )
             }
@@ -99,8 +119,24 @@ fun SpokextAppBar(
     modifier: Modifier = Modifier
 ) {
     if (currentScreen.name == SpokextScreen.NoteList.name)
-        TopAppBar(
-            title = { Text(stringResource(id = currentScreen.title)) },
+        CenterAlignedTopAppBar(
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = stringResource(id = currentScreen.title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.DarkGray
+                    )
+                }
+            },
             colors = TopAppBarDefaults.mediumTopAppBarColors(
                 containerColor = MaterialTheme.colorScheme.background
             ),
